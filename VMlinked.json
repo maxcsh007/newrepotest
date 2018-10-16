@@ -1,0 +1,157 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "adminPassword": {
+        "type": "securestring",
+        "defaultValue": ""
+      },
+      "adminSSHKey": {
+        "type": "securestring",
+        "defaultValue": ""
+      },
+      "adminUserName": {
+        "type": "string",
+        "defaultValue": "azrrootadmin"
+      },
+      "availabilitySetName": {
+        "type": "string"
+      },
+      "baseOsType": {
+        "type": "string"
+      },
+      "dataDiskCount": {
+        "type": "int"
+      },
+      "dataDiskLink": {
+        "type": "string"
+      },
+      "dataDiskSize": {
+        "type": "int"
+      },
+      "dataDiskType": {
+        "type": "string"
+      },
+      "imageValues": {
+        "type": "object"
+      },
+      "location": {
+        "type": "string"
+      },
+      "tagValues": {
+        "type": "object"
+      },
+      "virtualMachineCount": {
+        "type": "int"
+      },
+      "virtualMachineName": {
+        "type": "string"
+      },
+      "virtualMachineSize": {
+        "type": "string"
+      },
+      "virtualMachineStartingNumber":{
+        "type": "int",
+        "defaultValue": 1
+      }
+    },
+    "variables": {
+      "copy": [
+        {
+          "name": "osConfigPassword",
+          "count": "[parameters('virtualMachineCount')]",
+          "input": {
+            "computerName": "[concat(parameters('virtualMachineName'), copyIndex('osConfigPassword', parameters('virtualMachineStartingNumber')))]",
+            "adminUserName": "[parameters('adminUserName')]",
+            "adminPassword": "[parameters('adminPassword')]"
+          }
+        },
+  
+        {  
+          "name": "osConfigSsh",
+          "count": "[parameters('virtualMachineCount')]",
+          "input":{
+            "computerName": "[concat(parameters('virtualMachineName'), copyIndex('osConfigSsh', parameters('virtualMachineStartingNumber')))]",
+            "adminUserName": "[parameters('adminUserName')]",
+            "linuxConfiguration": {
+              "disablePasswordAuthentication": true,
+              "ssh": {
+                "publicKeys": [
+                  {
+                    "path": "[concat('/home/', parameters('adminUserName'), '/.ssh/authorized_keys' )]",
+                    "keyData": "[parameters('adminSSHKey')]"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+  
+    },
+    "resources": [
+      {
+        "apiVersion": "2016-09-01",
+        "name": "[concat('nestedVHD-', parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')))]",
+        "type": "Microsoft.Resources/deployments",
+        "copy": {
+          "name": "VHDcopy",
+          "count": "[parameters('virtualMachineCount')]"
+        },
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[parameters('dataDiskLink')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "dataDiskCount": { "value": "[parameters('dataDiskCount')]" },
+            "dataDiskSize": { "value": "[parameters('dataDiskSize')]" },
+            "dataDiskType": { "value": "[parameters('dataDiskType')]" },
+            "virtualMachineName": { "value": "[concat(parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')))]" }
+          }
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines",
+        "name": "[concat(parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')))]",
+        "apiVersion": "2016-04-30-preview",
+        "tags": "[parameters('tagValues')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('virtualMachineName'), copyindex(parameters('virtualMachineStartingNumber')), 'nic1'))]"
+              }
+            ]
+          },
+          "osProfile": "[if(empty(parameters('adminSSHKey')), variables('osConfigPassword')[copyIndex()], variables('osConfigSsh')[copyIndex()])]",
+          "hardwareProfile": {
+            "vmSize": "[parameters('virtualMachineSize')]"
+          },
+          "availabilitySet": {
+            "id": "[concat(resourceId('Microsoft.Compute/availabilitySets', parameters('availabilitySetName')))]"
+          },
+          "storageProfile": {
+            "imageReference": "[parameters('imageValues')]",
+            "osDisk": {
+              "name": "[concat(parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')), 'osdisk.vhd')]",
+              "createOption": "FromImage",
+              "caching": "ReadWrite",
+              "osType": "[parameters('baseOsType')]",
+              "managedDisk": {
+                "storageAccountType": "Standard_LRS"
+              }
+            },
+            "dataDisks": "[reference(concat('nestedVHD-', parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')))).outputs.result.value]"
+          }
+        },
+        "dependsOn": [ ],
+        "copy": {
+          "count": "[parameters('virtualMachineCount')]",
+          "name": "vmLoop"
+        }
+      }
+    ]
+  }
