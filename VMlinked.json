@@ -4,7 +4,10 @@
     "parameters": {
       "adminPassword": {
         "type": "securestring",
-        "defaultValue": ""
+        "defaultValue": "",
+        "metadata" : {
+            "description": "Password for the Virtual Machine."
+        }
       },
       "adminSSHKey": {
         "type": "securestring",

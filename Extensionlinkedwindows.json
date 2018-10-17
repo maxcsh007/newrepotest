@@ -1,0 +1,94 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "domainPassword": {
+      "type": "securestring"
+    },
+    "extensionProtectedSettings": {
+      "type": "object"
+    },
+    "extensionSettings": {
+      "type": "object"
+    },
+    "location": {
+      "type": "string"
+    },
+    "tagValues": {
+      "type": "object"
+    },
+    "virtualMachineCount": {
+      "type": "int"
+    },
+    "virtualMachineName": {
+      "type": "string"
+    },
+    "virtualMachineStartingNumber":{
+      "type": "int",
+      "defaultValue": 1
+    },
+    "User": {
+      "type": "string"
+    },
+    "OUPath": {
+      "type": "string"
+    },
+    "Name": {
+      "type": "string"
+    }
+  },
+  "variables": { },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('virtualMachineName'), copyIndex(parameters('virtualMachineStartingNumber')), '/01WindowsJoinDomain')]",
+      "apiVersion": "2017-03-30",
+      "tags": "[parameters('tagValues')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "typeHandlerVersion": "1.3",
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "commandToExecute": "",
+          "User": "[parameters('User')]",
+          "OUPath": "[parameters('OUPath')]",
+          "Name": "[parameters('Name')]",
+          "Options": 3,
+          "Restart": "false"
+        },
+        "protectedSettings": {
+          "password": "[parameters('DomainPassword')]"
+        }
+      },
+      "dependsOn": [ ],
+      "copy": {
+        "count": "[parameters('virtualMachineCount')]",
+        "name": "extensionLoop1"
+      }
+    },
+    {
+      "name": "[concat(parameters('virtualMachineName'), copyindex(parameters('virtualMachineStartingNumber')), '/02WindowsMasterScript')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName'), copyindex(1), '/extensions/01WindowsJoinDomain')]"
+      ],
+      "tags": "[parameters('tagValues')]",
+      "properties": {
+        "typeHandlerVersion": "1.8",
+        "publisher": "Microsoft.Compute", 
+        "settings": "[parameters('extensionSettings')]",
+        "type": "CustomScriptExtension",
+        "autoUpgradeMinorVersion": true,
+        "protectedSettings": "[parameters('extensionProtectedSettings')]"
+      },
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "copy": {
+        "count": "[parameters('virtualMachineCount')]",
+        "name": "extensionLoop2"
+      },
+      "apiVersion": "2017-03-30",
+      "location": "[parameters('location')]"
+    }
+  ]
+}
