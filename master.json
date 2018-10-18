@@ -6,6 +6,9 @@
             "defaultValue": "",
             "type": "SecureString"
         },
+        "adminPassword": {
+            "type": "SecureString"
+        },
         "availabilitySet": {
             "defaultValue": "New",
             "type": "String"
@@ -269,7 +272,7 @@
                 },
                 "parameters": {
                     "adminPassword": {
-                        "value": "Walmart@123456$"
+                        "value": "[parameters('adminPassword')]"
                     },
                     "adminSSHKey": {
                         "value": "[parameters('adminSSHKey')]"
