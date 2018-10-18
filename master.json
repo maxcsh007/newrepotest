@@ -1,0 +1,378 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminSSHKey": {
+            "defaultValue": "",
+            "type": "SecureString"
+        },
+        "availabilitySet": {
+            "defaultValue": "New",
+            "type": "String"
+        },
+        "storageAccountKey": {
+            "type": "SecureString"
+        },
+        "storageAccountName": {
+            "type": "String"
+        },
+        "domainPassword": {
+            "type": "SecureString"
+        },
+        "User": {
+            "type": "String"
+        },
+        "OUPath": {
+            "type": "String"
+        },
+        "Name": {
+            "type": "String"
+        },
+        "extensionSettings": {
+            "type": "Object"
+        },
+        "availabilitySetFaultDomain": {
+            "defaultValue": 3,
+            "type": "Int"
+        },
+        "availabilitySetUpdateDomain": {
+            "defaultValue": 20,
+            "type": "Int"
+        },
+        "baseOSType": {
+            "allowedValues": [
+                "windows",
+                "linux"
+            ],
+            "type": "String"
+        },
+        "dataDiskCount": {
+            "defaultValue": 0,
+            "minValue": 0,
+            "maxValue": 64,
+            "type": "Int"
+        },
+        "dataDiskSize": {
+            "defaultValue": 0,
+            "type": "Int"
+        },
+        "dataDiskType": {
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Premium_LRS"
+            ],
+            "type": "String"
+        },
+        "enableAcceleratedNetwork": {
+            "defaultValue": false,
+            "type": "Bool"
+        },
+        "enablePublicIP": {
+            "defaultValue": false,
+            "type": "Bool"
+        },
+        "enableExtension": {
+            "defaultValue": false,
+            "type": "Bool"
+        },
+        "location": {
+            "defaultValue": "[resourceGroup().location]",
+            "type": "String"
+        },
+        "networkName": {
+            "type": "String"
+        },
+        "networkResourceGroup": {
+            "type": "String"
+        },
+        "networkSubnetName": {
+            "type": "String"
+        },
+        "subscriptionId": {
+            "defaultValue": "[subscription().subscriptionId]",
+            "type": "String"
+        },
+        "tagValues": {
+            "type": "Object"
+        },
+        "virtualMachineCount": {
+            "type": "Int"
+        },
+        "virtualMachineSize": {
+            "defaultValue": "Standard_A4_v2",
+            "allowedValues": [
+                "Standard_A4_v2",
+                "Standard_A4_v2"
+            ],
+            "type": "String"
+        },
+        "virtualMachineStartingNumber": {
+            "defaultValue": 1,
+            "type": "Int"
+        }
+    },
+    "variables": {
+        "urlBase": "https://raw.githubusercontent.com/maxcsh007/newrepotest/master/",
+        "avsetLink": "[concat(variables('urlBase'), 'AvailabilitySetlinked', '.json')]",
+        "dataDiskLink": "[concat(variables('urlBase'), 'DataDisklinked', '.json')]",
+        "nicLink": "[concat(variables('urlBase'), 'NIClinked', '.json')]",
+        "pipLink": "[concat(variables('urlBase'), 'PublicIPlinked', '.json')]",
+        "vmLink": "[concat(variables('urlBase'), 'VMlinked', '.json')]",
+        "virtualMachineName": "[concat(uniqueString(resourceGroup().id))]",
+        "availabilitySet": "[concat('av',uniqueString(resourceGroup().id))]",
+        "osTypewindows": {
+            "publisher": "MicrosoftWindowsServer",
+            "version": "latest",
+            "Offer": "WindowsServer",
+            "Sku": "2016-Datacenter"
+        },
+        "osTypelinux": {
+            "imageOffer": "UbuntuServer",
+            "imageSku": "12.04.5-LTS",
+            "imagepublisher": "Canonical"
+        },
+        "imageValues": "[variables(concat('osType',parameters('baseOSType')))]",
+        "extLink": "[concat(variables('urlBase'), 'Extensionlinked', parameters('baseOsType'), '.json')]",
+        "extensionProtectedSettings": {
+            "value": {
+                "storageAccountName": "[parameters('storageAccountName')]",
+                "storageAccountKey": "[parameters('storageAccountKey')]"
+            }
+        },
+        "extensionSettings": "[parameters('extensionSettings')]",
+        "domainPassword": "[parameters('domainPassword')]",
+        "User": "[parameters('User')]",
+        "OUPath": "[parameters('OUPath')]",
+        "Name": "[parameters('Name')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat(variables('virtualMachineName'), 'linkedAVSTemplate')]",
+            "apiVersion": "2016-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('avsetLink')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "availabilitySetFaultDomain": {
+                        "value": "[parameters('availabilitySetFaultDomain')]"
+                    },
+                    "availabilitySetName": {
+                        "value": "[variables('availabilitySet')]"
+                    },
+                    "availabilitySetUpdateDomain": {
+                        "value": "[parameters('availabilitySetUpdateDomain')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tagValues": {
+                        "value": "[parameters('tagValues')]"
+                    }
+                }
+            },
+            "condition": "[equals(parameters('availabilitySet'),'New')]"
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat(variables('virtualMachineName'), 'linkedPIPTemplate')]",
+            "apiVersion": "2016-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('pipLink')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tagValues": {
+                        "value": "[parameters('tagValues')]"
+                    },
+                    "virtualMachineCount": {
+                        "value": "[parameters('virtualMachineCount')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "virtualMachineStartingNumber": {
+                        "value": "[parameters('virtualMachineStartingNumber')]"
+                    }
+                }
+            },
+            "condition": "[equals(parameters('enablePublicIP'), bool('true'))]"
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat(variables('virtualMachineName'), 'linkedNICTemplate')]",
+            "apiVersion": "2016-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('NIClink')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "enableAcceleratedNetwork": {
+                        "value": "[parameters('enableAcceleratedNetwork')]"
+                    },
+                    "enablePublicIP": {
+                        "value": "[parameters('enablePublicIP')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "networkName": {
+                        "value": "[parameters('networkName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "networkSubnetName": {
+                        "value": "[parameters('networkSubnetName')]"
+                    },
+                    "subscriptionId": {
+                        "value": "[parameters('subscriptionId')]"
+                    },
+                    "tagValues": {
+                        "value": "[parameters('tagValues')]"
+                    },
+                    "virtualMachineCount": {
+                        "value": "[parameters('virtualMachineCount')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "virtualMachineStartingNumber": {
+                        "value": "[parameters('virtualMachineStartingNumber')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', variables('virtualMachineName'), 'linkedPIPTemplate')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat(variables('virtualMachineName'), 'linkedVMTemplate')]",
+            "apiVersion": "2016-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vmLink')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "adminPassword": {
+                        "value": "Walmart@123456$"
+                    },
+                    "adminSSHKey": {
+                        "value": "[parameters('adminSSHKey')]"
+                    },
+                    "adminUserName": {
+                        "value": "azrrootadmin"
+                    },
+                    "availabilitySetName": {
+                        "value": "[variables('availabilitySet')]"
+                    },
+                    "baseOsType": {
+                        "value": "[parameters('baseOsType')]"
+                    },
+                    "dataDiskCount": {
+                        "value": "[parameters('dataDiskCount')]"
+                    },
+                    "dataDiskLink": {
+                        "value": "[variables('dataDiskLink')]"
+                    },
+                    "dataDiskSize": {
+                        "value": "[parameters('dataDiskSize')]"
+                    },
+                    "dataDiskType": {
+                        "value": "[parameters('dataDiskType')]"
+                    },
+                    "imageValues": {
+                        "value": "[variables('imageValues')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tagValues": {
+                        "value": "[parameters('tagValues')]"
+                    },
+                    "virtualMachineCount": {
+                        "value": "[parameters('virtualMachineCount')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[parameters('virtualMachineSize')]"
+                    },
+                    "virtualMachineStartingNumber": {
+                        "value": "[parameters('virtualMachineStartingNumber')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', variables('virtualMachineName'), 'linkedAVSTemplate')]",
+                "[concat('Microsoft.Resources/deployments/', variables('virtualMachineName'), 'linkedNICTemplate')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "name": "[concat(variables('virtualMachineName'), 'linkedExtensionTemplate')]",
+            "apiVersion": "2016-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('extLink')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "domainPassword": {
+                        "value": "[variables('domainPassword')]"
+                    },
+                    "extensionProtectedSettings": {
+                        "value": "[variables('extensionProtectedSettings')]"
+                    },
+                    "extensionSettings": {
+                        "value": "[variables('extensionSettings')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tagValues": {
+                        "value": "[parameters('tagValues')]"
+                    },
+                    "virtualMachineCount": {
+                        "value": "[parameters('virtualMachineCount')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "virtualMachineStartingNumber": {
+                        "value": "[parameters('virtualMachineStartingNumber')]"
+                    },
+                    "User": {
+                        "value": "[variables('User')]"
+                    },
+                    "OUPath": {
+                        "value": "[variables('OUPath')]"
+                    },
+                    "Name": {
+                        "value": "[variables('Name')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', variables('virtualMachineName'), 'linkedVMTemplate')]"
+            ],
+            "condition": "[equals(parameters('enableExtension'), bool('true'))]"
+        }
+    ]
+}
