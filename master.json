@@ -122,7 +122,7 @@
         "nicLink": "[concat(variables('urlBase'), 'NIClinked', '.json')]",
         "pipLink": "[concat(variables('urlBase'), 'PublicIPlinked', '.json')]",
         "vmLink": "[concat(variables('urlBase'), 'VMlinked', '.json')]",
-        "virtualMachineName": "[concat('hazr',substring(uniqueString(resourceGroup().id),1,9))]",
+        "virtualMachineName": "[concat('hazr',substring(uniqueString(resourceGroup().id, deployment().name),1,9))]",
         "availabilitySet": "[toLower(concat('avset',substring(uniqueString(resourceGroup().id),1,7),substring(uniqueString(subscription().id),1,2)))]",
         "osTypewindows": {
             "publisher": "MicrosoftWindowsServer",
